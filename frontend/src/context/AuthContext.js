@@ -6,17 +6,19 @@ export const AuthProvider = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    setIsLoggedIn(!!token);
+    const userId = localStorage.getItem("userId");
+    setIsLoggedIn(!!userId);   // login depends on userId, not token
   }, []);
 
-  const login = (token) => {
-    localStorage.setItem("token", token);
+  const login = (id, role) => {
+    localStorage.setItem("userId", id);
+    localStorage.setItem("role", role);
     setIsLoggedIn(true);
   };
 
   const logout = () => {
-    localStorage.removeItem("token");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("role");
     setIsLoggedIn(false);
   };
 

@@ -1,25 +1,10 @@
-import express from "express";
 import sequelize from "../db.js";
 import Donation from "../models/Donation.js";
 
-const router = express.Router();
-
-// Claim Food (existing logic)
-router.post("/", async (req, res) => {
-  try {
-    const claim = await Claim.create(req.body);
-    res.json(claim);
-  } catch (err) {
-    res.status(500).json({ error: "Failed to claim food" });
-  }
-});
-
-// Nearby Search (NEW)
-router.get("/nearby", async (req, res) => {
+export const getNearbyFoods = async (req, res) => {
   try {
     const { lat, lon, radius } = req.query;
-
-    const R = radius || 5; // default 5 km
+    const R = radius || 5;
 
     const query = `
       SELECT *, (
@@ -37,16 +22,14 @@ router.get("/nearby", async (req, res) => {
       ORDER BY distance ASC;
     `;
 
-    const results = await sequelize.query(query, {
+    const foods = await sequelize.query(query, {
       replacements: { lat, lon, radius: R },
       type: sequelize.QueryTypes.SELECT,
     });
 
-    res.json(results);
+    res.json(foods);
   } catch (err) {
     console.log(err);
     res.status(500).json({ error: "Server error" });
   }
-});
-
-export default router;
+};

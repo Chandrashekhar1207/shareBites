@@ -6,8 +6,9 @@ import Donate from "./pages/Donate";
 import Claim from "./pages/Claim";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
-import Signup from "./pages/SIgnup"; // ✅ new
-import Login from "./pages/Login";   // ✅ new
+import Signup from "./pages/SIgnup"; 
+import Login from "./pages/Login";   
+import Nearby from "./pages/Nearby";
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/signup" element={<Signup />} /> {/* ✅ signup route */}
             <Route path="/login" element={<Login />} />   {/* ✅ login route */}
+            <Route path="/nearby" element={<Nearby />} />
           </Routes>
         </main>
         <Footer />

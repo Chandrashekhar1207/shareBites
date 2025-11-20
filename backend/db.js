@@ -16,6 +16,11 @@ const sequelize = new Sequelize(
 try {
   await sequelize.authenticate();
   console.log("✅ Database connected!");
+
+  // 🔥 Add this to sync all models (including new role column)
+  await sequelize.sync({ alter: true });
+  console.log("🛠️ Models synchronized!");
+
 } catch (error) {
   console.error("❌ Unable to connect:", error);
 }
