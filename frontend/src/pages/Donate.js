@@ -9,16 +9,17 @@ export default function Donate() {
   const [longitude, setLongitude] = useState("");
   const [images, setImages] = useState([]);
 
-  // FIX: store donorId using state + useEffect
+  // ✅ NEW FIELDS
+  const [donorName, setDonorName] = useState("");
+  const [contactNo, setContactNo] = useState("");
+
   const [donorId, setDonorId] = useState(null);
 
   useEffect(() => {
     const id = localStorage.getItem("userId");
-    console.log("Donate page sees userId =", id);
     setDonorId(id);
   }, []);
 
-  // Auto-detect location on mount
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -32,9 +33,7 @@ export default function Donate() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!donorId) {
-      return alert("You must be logged in to donate");
-    }
+    if (!donorId) return alert("You must be logged in to donate");
 
     const form = new FormData();
     form.append("title", title);
@@ -43,12 +42,14 @@ export default function Donate() {
     form.append("latitude", latitude);
     form.append("longitude", longitude);
     form.append("donorId", donorId);
+    form.append("donorName", donorName);
+    form.append("contactNo", contactNo);
 
     images.forEach((file) => form.append("images", file));
 
     try {
       await axios.post("http://localhost:5000/api/donate", form, {
-        headers: { "Content-Type": "multipart/form-data" }
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
       alert("Donation submitted!");
@@ -57,20 +58,16 @@ export default function Donate() {
       setMessage("");
       setExpiryTime("");
       setImages([]);
-
+      setDonorName("");
+      setContactNo("");
     } catch (err) {
       console.error(err);
       alert("Error submitting donation");
     }
   };
 
-  // FIX: If donorId not loaded yet, don't show form
   if (donorId === null) {
-    return (
-      <div className="p-6 text-gray-600 font-semibold">
-        Checking login status…
-      </div>
-    );
+    return <div className="p-6">Checking login status…</div>;
   }
 
   if (!donorId) {
@@ -86,6 +83,22 @@ export default function Donate() {
       <h2 className="text-xl font-bold mb-4">Donate Food</h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+
+        <input
+          value={donorName}
+          onChange={(e) => setDonorName(e.target.value)}
+          placeholder="Your Name"
+          className="w-full border p-2"
+          required
+        />
+
+        <input
+          value={contactNo}
+          onChange={(e) => setContactNo(e.target.value)}
+          placeholder="Contact Number"
+          className="w-full border p-2"
+          required
+        />
 
         <input
           value={title}
@@ -111,7 +124,6 @@ export default function Donate() {
           required
         />
 
-        <label className="block font-medium">Upload Images</label>
         <input
           type="file"
           multiple
@@ -121,7 +133,7 @@ export default function Donate() {
         />
 
         {images.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto mt-2">
+          <div className="flex gap-2 overflow-x-auto">
             {images.map((img, i) => (
               <img
                 key={i}
@@ -135,7 +147,7 @@ export default function Donate() {
 
         <button
           type="submit"
-          className="bg-green-600 text-white px-4 py-2 rounded"
+          className="bg-green-600 text-white px-4 py-2 rounded w-full"
         >
           Submit Donation
         </button>

@@ -6,7 +6,7 @@ const Donation = sequelize.define("Donation", {
   message: { type: DataTypes.TEXT, allowNull: true },
 
   // MULTIPLE IMAGES STORED AS JSON
-  images: { type: DataTypes.TEXT, allowNull: true }, // store like JSON.stringify([])
+  images: { type: DataTypes.TEXT, allowNull: true },
 
   expiryTime: { type: DataTypes.DATE, allowNull: false },
 
@@ -15,20 +15,22 @@ const Donation = sequelize.define("Donation", {
 
   donorId: { type: DataTypes.INTEGER, allowNull: false },
 
-  // 🔥 NEW STATUS FIELD
+  // ✅ NEW CONTACT FIELDS
+  donorName: { type: DataTypes.STRING, allowNull: false },
+  contactNo: { type: DataTypes.STRING, allowNull: false },
+
   status: {
     type: DataTypes.ENUM("available", "claimed", "expired", "removed"),
-    defaultValue: "available"
+    defaultValue: "available",
   },
 
-  // 🔥 CLAIM DATA
   claimedBy: { type: DataTypes.INTEGER, allowNull: true },
   claimedAt: { type: DataTypes.DATE, allowNull: true },
 
   createdAt: {
     type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW
-  }
+    defaultValue: DataTypes.NOW,
+  },
 });
 
 export default Donation;

@@ -6,12 +6,13 @@ import {
   createDonation,
   getNearbyDonations,
   claimDonation,
-  removeDonation
+  removeDonation,
+  getMyDonations, // ✅ NEW
 } from "../controllers/donationController.js";
 
 const router = express.Router();
 
-// ⭐ GET ALL DONATIONS (FIX)
+// ⭐ GET ALL DONATIONS
 router.get("/", async (req, res) => {
   try {
     const donations = await Donation.findAll();
@@ -22,10 +23,14 @@ router.get("/", async (req, res) => {
   }
 });
 
+// ✅ GET DONATOR'S DONATIONS
+// Example: /api/donate/my?donorId=123
+router.get("/my", getMyDonations);
+
 // CREATE DONATION (MULTI IMAGES)
 router.post("/", upload.array("images", 5), createDonation);
 
-// GET ALL NEARBY DONATIONS
+// GET NEARBY DONATIONS
 router.get("/nearby", getNearbyDonations);
 
 // CLAIM DONATION
