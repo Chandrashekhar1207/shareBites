@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import DonationDetailsModal from "../components/DonationDetailsModal";
@@ -7,29 +7,63 @@ export default function Claim() {
   const [donations, setDonations] = useState([]);
   const [selectedDonation, setSelectedDonation] = useState(null);
 
+  // 📍 Location + Distance
+  const [latitude, setLatitude] = useState(null);
+  const [longitude, setLongitude] = useState(null);
+  const [radius, setRadius] = useState(3000);
+  const [loading, setLoading] = useState(true);
+
+  // 🔍 Search & Sort
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("nearest"); // nearest | newest
+
   const navigate = useNavigate();
 
-  // Load available donations
+  // 📍 Get user location
   useEffect(() => {
-    fetchDonations();
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLatitude(pos.coords.latitude);
+        setLongitude(pos.coords.longitude);
+      },
+      () => {
+        alert("Please enable location to find nearby food");
+        setLoading(false);
+      }
+    );
   }, []);
 
+  // 🌍 Fetch nearby donations
   const fetchDonations = async () => {
+    if (!latitude || !longitude) return;
+
+    setLoading(true);
     try {
-      const res = await axios.get("http://localhost:5000/api/donate");
-      const available = res.data.filter(
-        (d) => d.status === "available"
+      const res = await axios.get(
+        "http://localhost:5000/api/donate/nearby",
+        {
+          params: {
+            latitude,
+            longitude,
+            radius,
+          },
+        }
       );
-      setDonations(available);
+      setDonations(res.data);
     } catch (err) {
-      console.error("Fetch donations failed", err);
+      console.error("Nearby fetch failed", err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // 🟢 CLAIM FOOD → REDIRECT TO PRIVATE CHAT
+  useEffect(() => {
+    fetchDonations();
+  }, [latitude, longitude, radius]);
+
+  // 🟢 Claim food
   const handleClaim = async (donationId) => {
     const userId = localStorage.getItem("userId");
-
     if (!userId) {
       alert("Please login to claim food");
       return;
@@ -43,12 +77,10 @@ export default function Claim() {
 
       alert("Food claimed successfully!");
 
-      // remove from UI
       setDonations((prev) =>
         prev.filter((d) => d.id !== donationId)
       );
 
-      // 🔥 REDIRECT CLAIMER TO CHAT
       navigate(`/chat/${donationId}`);
     } catch (err) {
       console.error(err);
@@ -56,20 +88,89 @@ export default function Claim() {
     }
   };
 
+  // 🔍 SEARCH + SORT LOGIC
+  const filteredDonations = useMemo(() => {
+    let data = [...donations];
+
+    // Search filter
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      data = data.filter(
+        (d) =>
+          d.title?.toLowerCase().includes(q) ||
+          d.message?.toLowerCase().includes(q)
+      );
+    }
+
+    // Sorting
+    if (sortBy === "nearest") {
+      data.sort((a, b) => a.distance - b.distance);
+    } else if (sortBy === "newest") {
+      data.sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      );
+    }
+
+    return data;
+  }, [donations, search, sortBy]);
+
   return (
     <div className="max-w-5xl mx-auto p-6">
-      <h2 className="text-2xl font-bold mb-6">
-        Available Food for Claim
+      <h2 className="text-2xl font-bold mb-4">
+        Available Food Nearby
       </h2>
 
-      {donations.length === 0 && (
+      {/* LOADING */}
+      {loading && (
+        <p className="text-gray-500 mb-4">
+          Finding nearby food...
+        </p>
+      )}
+
+      {/* SEARCH + SORT */}
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <input
+          type="text"
+          placeholder="Search food (rice, bread, veg...)"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="border px-4 py-2 rounded w-full"
+        />
+
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+          className="border px-4 py-2 rounded md:w-48"
+        >
+          <option value="nearest">Nearest First</option>
+          <option value="newest">Newest First</option>
+        </select>
+      </div>
+
+      {/* DISTANCE FILTER */}
+      <div className="mb-6">
+        <label className="block font-medium mb-1">
+          Search Radius: {radius / 1000} km
+        </label>
+        <input
+          type="range"
+          min="1000"
+          max="10000"
+          step="500"
+          value={radius}
+          onChange={(e) => setRadius(Number(e.target.value))}
+          className="w-full"
+        />
+      </div>
+
+      {!loading && filteredDonations.length === 0 && (
         <p className="text-gray-500">
-          No food available right now.
+          No matching food available nearby.
         </p>
       )}
 
       <div className="grid md:grid-cols-2 gap-6">
-        {donations.map((item) => {
+        {filteredDonations.map((item) => {
           const images = item.images
             ? JSON.parse(item.images)
             : [];
@@ -79,7 +180,6 @@ export default function Claim() {
               key={item.id}
               className="border rounded-xl shadow p-4 bg-white"
             >
-              {/* IMAGE */}
               {images.length > 0 && (
                 <img
                   src={`http://localhost:5000${images[0]}`}
@@ -96,9 +196,13 @@ export default function Claim() {
                 {item.message}
               </p>
 
-              {/* ACTION BUTTONS */}
+              {item.distance && (
+                <p className="text-sm text-green-600 mt-1">
+                  📍 {item.distance.toFixed(2)} km away
+                </p>
+              )}
+
               <div className="flex flex-wrap gap-3 mt-4">
-                {/* VIEW DETAILS */}
                 <button
                   onClick={() => setSelectedDonation(item)}
                   className="px-4 py-2 border rounded hover:bg-gray-100"
@@ -106,7 +210,6 @@ export default function Claim() {
                   View Details
                 </button>
 
-                {/* VIEW LOCATION */}
                 <a
                   href={`https://www.google.com/maps/dir/?api=1&destination=${item.latitude},${item.longitude}`}
                   target="_blank"
@@ -116,7 +219,6 @@ export default function Claim() {
                   View in Map
                 </a>
 
-                {/* CLAIM */}
                 <button
                   onClick={() => handleClaim(item.id)}
                   className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
@@ -129,7 +231,6 @@ export default function Claim() {
         })}
       </div>
 
-      {/* DETAILS MODAL */}
       {selectedDonation && (
         <DonationDetailsModal
           donation={selectedDonation}
